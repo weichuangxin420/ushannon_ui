@@ -1,10 +1,11 @@
-#存放环境变量
+# 存放环境变量
 
 
 class URLDve:
 
     LLM = "https://dev-backend.xizi-ai.com"
     OJ_backend = "https://dev-admin.u-shannon.com/"
+
 
 class LLM:
     access_token = None
