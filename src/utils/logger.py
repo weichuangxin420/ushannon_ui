@@ -3,7 +3,6 @@
 import logging
 import os
 import time
-from config.path import PROJ_DIR
 import colorlog
 
 # 日志颜色配置
@@ -23,12 +22,13 @@ log.setLevel(logging.DEBUG)
 daytime = time.strftime("%Y-%m-%d", time.localtime())
 
 # 设置日志文件路径
-path = os.path.join(PROJ_DIR, "data",'logs')
+path = os.getcwd()
+print(path)
 
 if not os.path.exists(path):
     os.makedirs(path)
 
-filename = os.path.join(path, f"log_{daytime}.log")
+filename = os.path.join(path,"data","logs",f"log_{daytime}.log")
 
 # 创建控制台处理器并设置级别
 console_handler = logging.StreamHandler()
