@@ -18,7 +18,6 @@ def exception_catcher(func):
             log.error(f"在执行 '{func.__name__}' 时捕获到异常：{e}", exc_info=True)
             # 重新抛出异常以便上层调用者处理
             raise e
-
     return wrapper
 
 
