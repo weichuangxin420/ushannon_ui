@@ -6,7 +6,7 @@ class Path:
     # 源代码路径
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # 日志路径
-    log_path = os.path.join(base_path, "data", "logs")
+    log_path = os.path.join(base_path, "log_data", "logs")
 
 
 class URLDve:
