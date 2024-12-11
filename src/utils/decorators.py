@@ -1,6 +1,4 @@
 # 存放装饰器
-
-
 from functools import wraps
 
 from src.utils.logger import log
@@ -17,7 +15,7 @@ def exception_catcher(func):
             # 记录错误日志，包含函数名称和异常信息
             log.error(f"在执行 '{func.__name__}' 时捕获到异常：{e}", exc_info=True)
             # 重新抛出异常以便上层调用者处理
-            raise e
+
     return wrapper
 
 
