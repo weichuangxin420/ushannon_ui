@@ -1,6 +1,5 @@
 import pytest
 from playwright.sync_api import sync_playwright
-
 from src.config.env import URLDve
 from src.utils.logger import log
 
@@ -13,6 +12,7 @@ def init_page():
     context = browser.new_context()
     log.debug("浏览器启动成功")
     page = context.new_page()
+    page.goto(URLDve.OJ_front)
 
     # 返回上下文
     yield context, page
@@ -26,14 +26,13 @@ def init_page():
 
 @pytest.fixture(scope="function")
 def login_page(init_page):
+    """登录页"""
     if init_page:
         context = init_page[0]
         page = init_page[1]
-        page.goto(URLDve.OJ_front)
         from src.ushannon_ui.pages.login import LoginPage
-
         login_page = LoginPage(page)
         return login_page, context, page
     else:
         log.error("context为空")
-        raise
+
