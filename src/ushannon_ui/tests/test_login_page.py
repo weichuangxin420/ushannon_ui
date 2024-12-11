@@ -1,4 +1,10 @@
+import time
+
 import pytest
+
+from config.env import URLDve
+from src.utils.random_data_maker import  random_data_maker as rdm
+from random import randint
 
 from utils.logger import log
 
@@ -8,10 +14,9 @@ class TestLogin:
 
     def test_login(self, login_page):
         """测试登录"""
-        login_page[0].username_input(content="admin")
-        login_page[0].password_input(content="xz666666")
-        login_page[0].agreement_click()
-        login_page[0].login_click()
+        login_page[0].value_input({"username":"admin", "password":"xz666666"})
+        login_page[0].bt_click("agreement")
+        login_page[0].bt_click("login")
 
         try:
             login_page[2].wait_for_url(
@@ -20,6 +25,39 @@ class TestLogin:
             assert True
         except TimeoutError:
             assert False, "超时未跳转到指定url"
+
+            #由于登录后进入了主页，影响其他用例执行，需要返回登录页
+        finally:
+
+            # 清除 LocalStorage ，其中包含了token
+            login_page[2].evaluate("localStorage.clear();")
+            login_page[2].goto(URLDve.OJ_front)
+
+
+    @pytest.mark.parametrize("values,number",[
+        (rdm(11,False,True,True,True),"1"),
+        (rdm(randint(0,10),True,False,False,False),"2"),
+        (rdm(12,True,False,False,False),"3"),
+        (rdm(11,True,False,False,False),"4"),
+    ],ids = ["输入非数字字符","输入11以下的数字","输入12位数字","输入11位数字"])
+    def test_input(self,login_page,values,number):
+        """测试输入框输入"""
+        #如果不是手机号登录，切换下手机号登录
+        if login_page[0].query_element("phone_login"):
+            login_page[0].bt_click("phone_login")
+        login_page[0].value_input({"phone_number":values})
+        if number == "1":
+            assert login_page[0].get_value("phone_number") == ""
+        if number == "2":
+            assert login_page[0].get_value("phone_number") == values
+        if number == "3":
+            assert login_page[0].get_value("phone_number") == values[0:11]
+        if number == "4":
+            assert login_page[0].get_value("phone_number") == values
+        login_page[0].input_clear("phone_number")
+
+
+
 
 
 class TestGoto:
@@ -39,7 +77,11 @@ class TestGoto:
         with login_page[1].expect_page() as new_pages:
             login_page[0].a_goto(int(number))
         if new_pages:
-             assert target_url in  new_pages.value.url
+            assert target_url in new_pages.value.url
         else:
-            assert False,"new_pages 为空"
+            assert False, "new_pages 为空"
         org_page.bring_to_front()
+
+
+
+
