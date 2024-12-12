@@ -144,6 +144,7 @@ class TestLogin:
     )
     def test_goto(self, login_page, target_url, number):
         """测试跳转"""
+        #保存登录页
         org_page = login_page[2]
         with login_page[1].expect_page() as new_pages:
             login_page[0].a_goto(int(number))
@@ -151,4 +152,110 @@ class TestLogin:
             assert target_url in new_pages.value.url
         else:
             assert False, "new_pages 为空"
+        #返回登录页
         org_page.bring_to_front()
+
+    def test_disagree_login(self,login_page):
+        """测试未同意协议登录"""
+
+        # 如果不是手机号登录，切换下手机号登录
+        if login_page[0].query_element("phone_login", mode="visible"):
+            login_page[0].bt_click("phone_login")
+
+        #输入手机号和验证码
+        login_page[0].value_input({"phone_number": "17102108412","verifycode": "000000"})
+        #勾选同意协议
+        login_page[0].bt_click("agreement")
+        assert login_page[0].query_element(
+            "agreement_attribute",
+            mode="get_attribute",
+            attribute="aria-checked"
+        ) == "true"
+
+        #取消勾选
+        login_page[0].bt_click("agreement")
+        assert login_page[0].query_element(
+            "agreement_attribute",
+            mode="get_attribute",
+            attribute="aria-checked"
+        ) == "false"
+
+        #点击登录
+        login_page[0].bt_click("login")
+        assert login_page[0].query_element("dialog",mode = "wait_for_visible")
+        #关闭对话框
+        login_page[0].bt_click("dialog_close")
+        assert not login_page[0].query_element("dialog", mode="wait_for_visible")
+        #点击登录
+        login_page[0].bt_click("login")
+        #点击不同意
+        login_page[0].bt_click("dialog_disagree")
+        assert not login_page[0].query_element("dialog", mode="wait_for_visible")
+        #点击登录
+        login_page[0].bt_click("login")
+
+        #保存登录页
+        org_page = login_page[2]
+        elements = {
+            "dialog_a0":"https://dev-learn.u-shannon.com/userAgreement.html",
+            "dialog_a1":"https://dev-learn.u-shannon.com/privacyPolicy.html",
+        }
+        for element,target_url in elements.items():
+            with login_page[1].expect_page() as new_pages:
+                login_page[0].bt_click(element)
+            if new_pages:
+                assert target_url in new_pages.value.url
+            else:
+                assert False, "new_pages 为空"
+            #返回登录页
+            org_page.bring_to_front()
+
+
+        #点击同意
+        login_page[0].bt_click("dialog_agree")
+
+        try:
+            login_page[2].wait_for_url(
+                "https://dev-learn.u-shannon.com/", timeout=10000
+            )
+            assert True
+        except TimeoutError:
+            assert False, "超时未跳转到指定url"
+
+            # 由于登录后进入了主页，影响其他用例执行，需要返回登录页
+        finally:
+
+            # 清除 LocalStorage ，其中包含了token
+            login_page[2].evaluate("localStorage.clear();")
+            login_page[2].goto(URLDve.OJ_front)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
