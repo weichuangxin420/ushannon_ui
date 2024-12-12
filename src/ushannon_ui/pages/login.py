@@ -1,7 +1,7 @@
 from src.utils.decorators import exception_catcher as ec
 from src.utils.decorators import logger
 from src.utils.logger import log
-
+from playwright._impl._errors import TimeoutError as pw_TimeoutError
 
 class LoginPage(object):
     def __init__(self, page):
@@ -19,6 +19,8 @@ class LoginPage(object):
             self.bt_phone_login = self.page.locator("text = 手机验证码登录")
             # 用户协议复选框
             self.cb_agreement = self.page.locator(".semi-checkbox-inner-display")
+            #用户协议复选框——用于存在性质的元素
+            self.cb_agreement2 = self.page.locator("[type = checkbox]")
             # 跳转网页：1.用户协议；2.隐私政策；3.备案网页1；4.备案网页2
             self.a = self.page.locator("div a")
             # 手机号输入框
@@ -37,9 +39,19 @@ class LoginPage(object):
             self.timer_resend = self.page.get_by_text("58")
             # 重写发送文案
             self.text_resend = self.page.get_by_text("重新获取")
+            #协议对话框
+            self.dialog = self.page.locator("#dialog-0")
+            #对话框关闭按钮
+            self.dialog_close = self.page.locator("span [aria-label =close ]")
+            #对话框不同意
+            self.dialog_disagree = self.page.get_by_text("不同意")
+            #对话框同意
+            self.dialog_agree = self.page.get_by_text("同意并登录")
+            #对话框链接:1是用户协议，2是隐私政策
+            self.dialog_a = self.page.locator("._modal-content-link_i6023_49")
 
-            # 将元素分类——元素目录
-            # 输入框——名字不要重复
+            # 将元素分类——元素目录(名字不要重复)
+            # 输入框
             self.input_boxes = {
                 "username": self.input_username,
                 "password": self.input_password,
@@ -52,6 +64,11 @@ class LoginPage(object):
                 "agreement": self.cb_agreement,
                 "phone_login": self.bt_phone_login,
                 "get_verifycode": self.bt_verifycode,
+                "dialog_close": self.dialog_close,
+                "dialog_disagree": self.dialog_disagree,
+                "dialog_agree": self.dialog_agree,
+                "dialog_a0": self.dialog_a.nth(0),
+                "dialog_a1": self.dialog_a.nth(1),
             }
 
             self.text = {
@@ -61,16 +78,43 @@ class LoginPage(object):
                 "timer": self.timer_resend,
                 "resend": self.text_resend,
             }
+            self.others = {
+                "agreement_attribute": self.cb_agreement2,
+                "dialog" : self.dialog,
+            }
 
         except Exception as e_locator:
             log.error(f"元素定位错误{e_locator}")
             raise e_locator
 
+    def __exist(self,element):
+        """检查函数是否存在目录"""
+
+        #检查输入是否为空
+        if element:
+            #搜索目录
+            locator = (
+                self.input_boxes.get(element)
+                or self.buttons.get(element)
+                or self.text.get(element)
+                or self.others.get(element)
+            )
+            #检查是否存在目录
+            if locator:
+                return locator
+            else:
+                log.error("目录中没有该元素")
+                return None
+        else:
+            log.error("该元素为空")
+            return False
+
+
     @logger
     @ec
-    def query_element(self, element, mode):
+    def query_element(self, element, mode,attribute = None):
         """查询元素的性质"""
-        modes = ("visible", "wait_for_visible", "enable")
+        modes = ("visible", "wait_for_visible", "enable","get_attribute")
         if element is None:
             log.error("查询参数为空")
             return False
@@ -78,17 +122,8 @@ class LoginPage(object):
             log.error("mode的输入不合法")
             return False
 
-        # 获取对应元素（若存在）
-        ui_element = (
-            self.input_boxes.get(element)
-            or self.buttons.get(element)
-            or self.text.get(element)
-        )
-
-        # 未找到对应元素
-        if ui_element is None:
-            log.error("目录中没有对应的元素")
-            return False
+        # 获取对应元素（若存在）是否在目录中
+        ui_element = self.__exist(element)
 
         # 根据 mode 参数决定处理逻辑
         if mode == "visible":
@@ -96,12 +131,19 @@ class LoginPage(object):
         if mode == "wait_for_visible":
             # 等待元素变为可见状态
             try:
-                ui_element.wait_for(state="visible")
+                ui_element.wait_for(state="visible",timeout=500)
                 return True
-            except TimeoutError:
+            except pw_TimeoutError:
                 return False
         if mode == "enable":
             return ui_element.is_enabled()
+        if mode == "get_attribute":
+            if attribute:
+                return ui_element.get_attribute(attribute)
+            else:
+                log.error("未输入需要查询的属性，请检查输入参数")
+                return False
+
 
     @logger
     @ec
@@ -154,6 +196,8 @@ class LoginPage(object):
         for bt in bts:
             if self.buttons.get(bt):
                 self.buttons[bt].click()
+                #为渲染预留时间
+                self.page.wait_for_timeout(100)
             else:
                 log.error("没有对应的输入框，请检查参数")
                 return False
