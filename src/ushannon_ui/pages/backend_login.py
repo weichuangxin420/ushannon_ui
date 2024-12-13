@@ -1,5 +1,4 @@
-from src.utils.decorators import exception_catcher as ec
-from src.utils.decorators import logger
+from src.utils.decorators import base_decorator as ec
 from src.utils.logger import log
 
 
