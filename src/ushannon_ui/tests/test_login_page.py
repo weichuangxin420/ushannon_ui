@@ -8,17 +8,39 @@ from src.utils.random_data_maker import random_data_maker as rdm
 from utils.logger import log
 
 
-class TestLogin:
+class TestLoginPage:
 
-    def test_login(self, login_page):
+    @pytest.mark.parametrize(
+        "phone",[
+            "18210881115",
+            "17102108412",
+            "17102108413",
+            "18210881111",
+            "18210881113"
+         ],
+        ids = ["超管登录","机构管理员登录","老师登录","学生登录","游客登录"]
+    )
+    def test_login(self, login_page,phone):
         """测试登录"""
-        login_page[0].value_input({"username": "admin", "password": "xz666666"})
-        login_page[0].bt_click("agreement")
+        # 如果不是手机号登录，切换下手机号登录
+        if login_page[0].query_element("phone_login", mode="visible"):
+            login_page[0].bt_click("phone_login")
+
+        # 如果未勾选协议，勾选同意协议
+        if login_page[0].query_element(
+                "agreement_attribute",
+                mode="get_attribute",
+                attribute="aria-checked"
+        ) == "false":
+            login_page[0].bt_click("agreement")
+
+        # 输入手机号和验证码，并点击登录
+        login_page[0].value_input({"phone_number": phone, "verifycode": "000000"})
         login_page[0].bt_click("login")
 
         try:
             login_page[2].wait_for_url(
-                "https://dev-learn.u-shannon.com/", timeout=10000
+                "https://dev-learn.u-shannon.com/", timeout=3000
             )
             assert True
         except TimeoutError:
@@ -32,7 +54,7 @@ class TestLogin:
             login_page[2].goto(URLDve.OJ_front)
 
     @pytest.mark.parametrize(
-        "values,number",
+        "values,tid",
         [
             (rdm(11, False, True, True, True), "1"),
             (rdm(randint(0, 10), True, False, False, False), "2"),
@@ -41,28 +63,28 @@ class TestLogin:
         ],
         ids=["输入非数字字符", "输入11以下的数字", "输入12位数字", "输入11位数字"],
     )
-    def test_phone_input(self, login_page, values, number):
+    def test_phone_input(self, login_page, values, tid):
         """测试输入框输入"""
         # 如果不是手机号登录，切换下手机号登录
-        if login_page[0].query_element("phone_login"):
+        if login_page[0].query_element("phone_login",mode = "visible"):
             login_page[0].bt_click("phone_login")
         login_page[0].value_input({"phone_number": values})
-        if number == "1":
+        if tid == "1":
             assert login_page[0].get_value("phone_number") == ""
-        if number == "2":
+        if tid == "2":
             assert login_page[0].get_value("phone_number") == values
-        if number == "3":
+        if tid == "3":
             assert login_page[0].get_value("phone_number") == values[0:11]
-        if number == "4":
+        if tid == "4":
             assert login_page[0].get_value("phone_number") == values
         login_page[0].input_clear("phone_number")
 
     @pytest.mark.parametrize(
-        "phone_number,number",
+        "phone_number,tid",
         [("17102108412", "1"), ("14000200000", "2"), ("17102108412", "3")],
         ids=["无网获取验证码", "手机号未注册", "成功发送,倒计时后重新发送"],
     )
-    def test_get_verifycode(self, login_page, phone_number, number):
+    def test_get_verifycode(self, login_page, phone_number, tid):
         """测试手机号输入框"""
 
         # 每次执行恢复网络
@@ -74,20 +96,20 @@ class TestLogin:
         login_page[0].value_input({"phone_number": phone_number})
 
         # 断言断网吐司
-        if number == "1":
+        if tid == "1":
             login_page[1].set_offline(True)
             login_page[0].bt_click("get_verifycode")
             assert login_page[0].query_element(
                 element="neterror", mode="wait_for_visible"
             )
 
-        if number == "2":
+        if tid == "2":
             login_page[0].bt_click("get_verifycode")
             assert login_page[0].query_element(
                 element="nophone", mode="wait_for_visible"
             )
 
-        if number == "3":
+        if tid == "3":
             login_page[0].bt_click("get_verifycode")
             assert login_page[0].query_element(
                 element="success", mode="wait_for_visible"
@@ -103,7 +125,7 @@ class TestLogin:
             )
 
     @pytest.mark.parametrize(
-        "verifycode,number",
+        "verifycode,tid",
         [
             (rdm(6, False, True, True, True), "1"),
             (rdm(randint(0, 5), True, False, False, False), "2"),
@@ -112,7 +134,7 @@ class TestLogin:
         ],
         ids=["输入非数字", "输入不足6位数", "输入7位数", "输入6位数"],
     )
-    def test_verifycode_input(self, login_page, verifycode, number):
+    def test_verifycode_input(self, login_page, verifycode, tid):
         """测试验证码输入框"""
 
         # 如果不是手机号登录，切换下手机号登录
@@ -123,18 +145,18 @@ class TestLogin:
         # 输入验证码
         login_page[0].value_input({"verifycode": verifycode})
         # 断言
-        if number == "1":
+        if tid == "1":
             assert login_page[0].get_value("verifycode") == ""
-        if number == "2":
+        if tid == "2":
             assert login_page[0].get_value("verifycode") == verifycode
             assert not login_page[0].query_element(element="login", mode="enable")
-        if number == "3":
+        if tid == "3":
             assert login_page[0].get_value("verifycode") == verifycode[:6]
-        if number == "4":
+        if tid == "4":
             assert login_page[0].get_value("verifycode") == verifycode
 
     @pytest.mark.parametrize(
-        "target_url,number",
+        "target_url,tid",
         [
             ("https://dev-learn.u-shannon.com/userAgreement.html", "0"),
             ("https://dev-learn.u-shannon.com/privacyPolicy.html", "1"),
@@ -142,12 +164,12 @@ class TestLogin:
             ("https://beian.mps.gov.cn/#/query/webSearch", "3"),
         ],
     )
-    def test_goto(self, login_page, target_url, number):
+    def test_goto(self, login_page, target_url, tid):
         """测试跳转"""
         #保存登录页
         org_page = login_page[2]
         with login_page[1].expect_page() as new_pages:
-            login_page[0].a_goto(int(number))
+            login_page[0].a_goto(int(tid))
         if new_pages:
             assert target_url in new_pages.value.url
         else:
@@ -158,9 +180,8 @@ class TestLogin:
     def test_disagree_login(self,login_page):
         """测试未同意协议登录"""
 
-        # 如果不是手机号登录，切换下手机号登录
-        if login_page[0].query_element("phone_login", mode="visible"):
-            login_page[0].bt_click("phone_login")
+        # 切换下手机号登录
+        login_page[0].bt_click("phone_login")
 
         #输入手机号和验证码
         login_page[0].value_input({"phone_number": "17102108412","verifycode": "000000"})
@@ -229,12 +250,114 @@ class TestLogin:
             login_page[2].evaluate("localStorage.clear();")
             login_page[2].goto(URLDve.OJ_front)
 
+    @pytest.mark.parametrize(
+        "phone,verifycode,tid",[
+            (None,"000000","1"),
+            ("14000200000","000000","2"),
+            ("17102108412",None,"3"),
+            ("17102108412",rdm(6),"4"),
+            ("17102108412",rdm(6),"5"),
+        ],
+        ids = ["手机号为空","手机号未注册","验证码为空","验证码错误","未获取验证码"]
+    )
+    def test_process(self, login_page, phone, verifycode, tid):
+        """测试登录流程"""
 
+        # 如果不是手机号登录，切换下手机号登录
+        if login_page[0].query_element("phone_login", mode="visible"):
+            login_page[0].bt_click("phone_login")
 
+        #如果未勾选协议，勾选同意协议
+        if login_page[0].query_element(
+                "agreement_attribute",
+                mode="get_attribute",
+                attribute="aria-checked"
+        ) == "false":
+            login_page[0].bt_click("agreement")
 
+        #输入手机号,获取并输入验证码
+        if phone:
+            login_page[0].value_input({"phone_number": phone})
+        if verifycode:
+            login_page[0].value_input({"verifycode": verifycode})
 
+        #断言登录无法点击
+        if tid == "1" or tid == "3":
+            assert not login_page[0].query_element("login", mode="enable")
+            login_page[0].input_clear(("phone_number", "verifycode"))
+            return True
 
+        #点击登录
+        login_page[0].bt_click("login")
 
+        #断言
+        if tid == "2":
+            assert login_page[0].query_element("nophone", mode="wait_for_visible")
+        if tid == "4":
+            assert login_page[0].query_element("wrong_verifycode", mode="wait_for_visible")
+        if tid == "5":
+            assert login_page[0].query_element("wrong_verifycode", mode="wait_for_visible")
+
+        #清空原本的输入
+        login_page[0].input_clear(("phone_number", "verifycode"))
+
+    @pytest.mark.parametrize(
+        "value,tid",
+        [
+            (rdm(2),"1"),
+            (rdm(2,integer=False,letter=True),"2"),
+            (rdm(2,integer=False,punctuation=True),"3"),
+            (rdm(2,integer=False,chinese=True),"4"),
+            (rdm(8,letter=True,punctuation=True,chinese=True),"5"),
+        ],ids = ["输入纯数字","输入纯英文","输入纯符号","输入纯汉字","混合输入"]
+    )
+    def test_username_password(self,login_page,value,tid):
+        """测试用户名输入框和密码输入框"""
+
+        #如果是验证码登录，切换为账号密码登录
+        if login_page[0].query_element("username_login", mode="wait_for_visible"):
+            login_page[0].bt_click("username_login")
+
+        #输入用户名
+        login_page[0].value_input({"username": value})
+        login_page[0].value_input({"password": value})
+
+        #断言
+        if tid == "1" or tid == "2":
+            #断言输入保留
+            assert login_page[0].get_value("username") == value
+            assert login_page[0].query_element("password",mode="get_attribute",attribute="value") == value
+            #删除字符
+            login_page[0].exist("username").press("Delete")
+            login_page[0].exist("password").press("Delete")
+            #断言正常删除字符
+            assert login_page[0].get_value("username") == value[1:]
+            assert login_page[0].query_element("password", mode="get_attribute", attribute="value") == value[1:]
+
+        if tid == "3":
+            #断言输入无效
+            assert login_page[0].get_value("username") == ''
+            assert login_page[0].query_element("password", mode="get_attribute", attribute="value") == value
+            #断言默认隐藏密码
+            assert login_page[0].query_element("password", mode="get_attribute", attribute="type") == "password"
+            #点击隐藏按钮
+            login_page[0].bt_click("hide")
+            #断言密码不隐藏
+            assert login_page[0].query_element("password", mode="get_attribute", attribute="type") == "text"
+
+        if tid == "4":
+            #断言输入无效
+            assert login_page[0].get_value("username") == ''
+            assert login_page[0].query_element("password", mode="get_attribute", attribute="value") == ""
+
+        if tid == "5" :
+            #断言部分输入无效
+            assert len(login_page[0].get_value("username")) <= 8
+            assert len(login_page[0].query_element("password",mode="get_attribute",attribute="value")) <= 8
+
+        #清除输入
+        login_page[0].input_clear("username")
+        login_page[0].input_clear("password")
 
 
 
