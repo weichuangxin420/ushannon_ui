@@ -15,9 +15,7 @@ def random_data_maker(
         char_pool += string.punctuation
 
     if chinese:
-        char_pool += "".join(
-            chr(random.randint(0x4E00, 0x9FFF)) for _ in range(30)
-        )
+        char_pool += "".join(chr(random.randint(0x4E00, 0x9FFF)) for _ in range(30))
     if char_pool:
         return "".join(random.choice(char_pool) for i in range(length))
     else:
@@ -25,6 +23,4 @@ def random_data_maker(
 
 
 if __name__ == "__main__":
-    print(
-        random_data_maker(2,integer=False,chinese=True)
-    )
+    print(random_data_maker(2, integer=False, chinese=True))
