@@ -17,6 +17,8 @@ class LoginPage(object):
             self.bt_login = self.page.locator("[type = submit]")
             # 切换手机号登录按钮
             self.bt_phone_login = self.page.locator("text = 手机验证码登录")
+            #切换账号密码等待按钮
+            self.bt_username_login = self.page.get_by_text("账号密码登录",exact=True)
             # 用户协议复选框
             self.cb_agreement = self.page.locator(".semi-checkbox-inner-display")
             #用户协议复选框——用于存在性质的元素
@@ -32,11 +34,11 @@ class LoginPage(object):
             # 网络错误吐司
             self.toast_neterror = self.page.get_by_text("网络请求失败")
             # 手机号未注册吐司
-            self.toast_nophone = self.page.get_by_text("未注册")
+            self.toast_nophone = self.page.get_by_text("当前手机号未注册")
             # 成功发送吐司
             self.toast_success_send = self.page.get_by_text("发送成功")
             # 重发送倒计时
-            self.timer_resend = self.page.get_by_text("58")
+            self.timer_resend = self.page.get_by_text("59")
             # 重写发送文案
             self.text_resend = self.page.get_by_text("重新获取")
             #协议对话框
@@ -49,6 +51,17 @@ class LoginPage(object):
             self.dialog_agree = self.page.get_by_text("同意并登录")
             #对话框链接:1是用户协议，2是隐私政策
             self.dialog_a = self.page.locator("._modal-content-link_i6023_49")
+            #验证码错误吐司
+            self.toast_wrong_verifycode = self.page.get_by_text("验证码不正确")
+            #验证码已失效吐司
+            self.toast_verifycode_expired = self.page.get_by_text("验证码已失效")
+            #隐藏密码按钮
+            self.bt_hide_password = self.page.locator("[role = button]")
+
+
+
+
+
 
             # 将元素分类——元素目录(名字不要重复)
             # 输入框
@@ -63,12 +76,14 @@ class LoginPage(object):
                 "login": self.bt_login,
                 "agreement": self.cb_agreement,
                 "phone_login": self.bt_phone_login,
+                "username_login": self.bt_username_login,
                 "get_verifycode": self.bt_verifycode,
                 "dialog_close": self.dialog_close,
                 "dialog_disagree": self.dialog_disagree,
                 "dialog_agree": self.dialog_agree,
                 "dialog_a0": self.dialog_a.nth(0),
                 "dialog_a1": self.dialog_a.nth(1),
+                "hide" : self.bt_hide_password
             }
 
             self.text = {
@@ -77,6 +92,9 @@ class LoginPage(object):
                 "success": self.toast_success_send,
                 "timer": self.timer_resend,
                 "resend": self.text_resend,
+                "wrong_verifycode": self.toast_wrong_verifycode,
+                "verifycode_expired": self.toast_verifycode_expired,
+
             }
             self.others = {
                 "agreement_attribute": self.cb_agreement2,
@@ -87,7 +105,7 @@ class LoginPage(object):
             log.error(f"元素定位错误{e_locator}")
             raise e_locator
 
-    def __exist(self,element):
+    def exist(self, element):
         """检查函数是否存在目录"""
 
         #检查输入是否为空
@@ -123,7 +141,7 @@ class LoginPage(object):
             return False
 
         # 获取对应元素（若存在）是否在目录中
-        ui_element = self.__exist(element)
+        ui_element = self.exist(element)
 
         # 根据 mode 参数决定处理逻辑
         if mode == "visible":
@@ -131,12 +149,12 @@ class LoginPage(object):
         if mode == "wait_for_visible":
             # 等待元素变为可见状态
             try:
-                ui_element.wait_for(state="visible",timeout=500)
+                ui_element.wait_for(state="visible",timeout=1000)
                 return True
             except pw_TimeoutError:
                 return False
         if mode == "enable":
-            return ui_element.is_enabled()
+            return ui_element.is_enabled(timeout=100)
         if mode == "get_attribute":
             if attribute:
                 return ui_element.get_attribute(attribute)
@@ -225,7 +243,10 @@ class LoginPage(object):
 
         for box in boxes:
             if self.input_boxes.get(box):
-                self.input_boxes[box].clear()
+                try:
+                    self.input_boxes[box].clear(timeout=100)
+                except pw_TimeoutError:
+                    log.debug("输入框无内容删除")
             else:
                 log.error("没有对应的输入框，请检查参数")
                 return False
