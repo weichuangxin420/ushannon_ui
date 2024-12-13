@@ -1,7 +1,8 @@
-from src.utils.decorators import exception_catcher as ec
-from src.utils.decorators import logger
-from src.utils.logger import log
 from playwright._impl._errors import TimeoutError as pw_TimeoutError
+
+from src.utils.decorators import base_decorator
+from src.utils.logger import log
+
 
 class LoginPage(object):
     def __init__(self, page):
@@ -17,11 +18,11 @@ class LoginPage(object):
             self.bt_login = self.page.locator("[type = submit]")
             # 切换手机号登录按钮
             self.bt_phone_login = self.page.locator("text = 手机验证码登录")
-            #切换账号密码等待按钮
-            self.bt_username_login = self.page.get_by_text("账号密码登录",exact=True)
+            # 切换账号密码等待按钮
+            self.bt_username_login = self.page.get_by_text("账号密码登录", exact=True)
             # 用户协议复选框
             self.cb_agreement = self.page.locator(".semi-checkbox-inner-display")
-            #用户协议复选框——用于存在性质的元素
+            # 用户协议复选框——用于存在性质的元素
             self.cb_agreement2 = self.page.locator("[type = checkbox]")
             # 跳转网页：1.用户协议；2.隐私政策；3.备案网页1；4.备案网页2
             self.a = self.page.locator("div a")
@@ -41,27 +42,28 @@ class LoginPage(object):
             self.timer_resend = self.page.get_by_text("59")
             # 重写发送文案
             self.text_resend = self.page.get_by_text("重新获取")
-            #协议对话框
+            # 协议对话框
             self.dialog = self.page.locator("#dialog-0")
-            #对话框关闭按钮
+            # 对话框关闭按钮
             self.dialog_close = self.page.locator("span [aria-label =close ]")
-            #对话框不同意
+            # 对话框不同意
             self.dialog_disagree = self.page.get_by_text("不同意")
-            #对话框同意
+            # 对话框同意
             self.dialog_agree = self.page.get_by_text("同意并登录")
-            #对话框链接:1是用户协议，2是隐私政策
+            # 对话框链接:1是用户协议，2是隐私政策
             self.dialog_a = self.page.locator("._modal-content-link_i6023_49")
-            #验证码错误吐司
+            # 验证码错误吐司
             self.toast_wrong_verifycode = self.page.get_by_text("验证码不正确")
-            #验证码已失效吐司
+            # 验证码已失效吐司
             self.toast_verifycode_expired = self.page.get_by_text("验证码已失效")
-            #隐藏密码按钮
+            # 隐藏密码按钮
             self.bt_hide_password = self.page.locator("[role = button]")
-
-
-
-
-
+            # 用户未注册吐司
+            self.toast_unsigned = self.page.get_by_text("当前用户未注册")
+            # 密码错误吐司
+            self.toast_wrong_password = self.page.get_by_text("当前用户密码错误")
+            # 用户被禁用吐司
+            self.toast_disable_user = self.page.get_by_text("用户已被禁用")
 
             # 将元素分类——元素目录(名字不要重复)
             # 输入框
@@ -83,7 +85,7 @@ class LoginPage(object):
                 "dialog_agree": self.dialog_agree,
                 "dialog_a0": self.dialog_a.nth(0),
                 "dialog_a1": self.dialog_a.nth(1),
-                "hide" : self.bt_hide_password
+                "hide": self.bt_hide_password,
             }
 
             self.text = {
@@ -94,30 +96,33 @@ class LoginPage(object):
                 "resend": self.text_resend,
                 "wrong_verifycode": self.toast_wrong_verifycode,
                 "verifycode_expired": self.toast_verifycode_expired,
-
+                "unsigned": self.toast_unsigned,
+                "wrong_password": self.toast_wrong_password,
+                "disable_user": self.toast_disable_user,
             }
             self.others = {
                 "agreement_attribute": self.cb_agreement2,
-                "dialog" : self.dialog,
+                "dialog": self.dialog,
             }
 
         except Exception as e_locator:
             log.error(f"元素定位错误{e_locator}")
             raise e_locator
 
+    @base_decorator
     def exist(self, element):
         """检查函数是否存在目录"""
 
-        #检查输入是否为空
+        # 检查输入是否为空
         if element:
-            #搜索目录
+            # 搜索目录
             locator = (
                 self.input_boxes.get(element)
                 or self.buttons.get(element)
                 or self.text.get(element)
                 or self.others.get(element)
             )
-            #检查是否存在目录
+            # 检查是否存在目录
             if locator:
                 return locator
             else:
@@ -127,12 +132,10 @@ class LoginPage(object):
             log.error("该元素为空")
             return False
 
-
-    @logger
-    @ec
-    def query_element(self, element, mode,attribute = None):
+    @base_decorator
+    def query_element(self, element, mode, attribute=None):
         """查询元素的性质"""
-        modes = ("visible", "wait_for_visible", "enable","get_attribute")
+        modes = ("visible", "wait_for_visible", "enable", "get_attribute")
         if element is None:
             log.error("查询参数为空")
             return False
@@ -149,7 +152,7 @@ class LoginPage(object):
         if mode == "wait_for_visible":
             # 等待元素变为可见状态
             try:
-                ui_element.wait_for(state="visible",timeout=1000)
+                ui_element.wait_for(state="visible", timeout=1000)
                 return True
             except pw_TimeoutError:
                 return False
@@ -162,9 +165,7 @@ class LoginPage(object):
                 log.error("未输入需要查询的属性，请检查输入参数")
                 return False
 
-
-    @logger
-    @ec
+    @base_decorator
     def value_input(self, box_value: dict):
         """向输入框输入内容"""
         # 检查空参
@@ -180,8 +181,7 @@ class LoginPage(object):
                 return False
         return True
 
-    @ec
-    @logger
+    @base_decorator
     def get_value(self, box: str):
         """获取输入框中的内容"""
 
@@ -196,8 +196,7 @@ class LoginPage(object):
             log.error("没有对应的输入框，请检查参数")
             return False
 
-    @logger
-    @ec
+    @base_decorator
     def bt_click(self, bts: tuple | str):
         """点击按钮"""
 
@@ -214,7 +213,7 @@ class LoginPage(object):
         for bt in bts:
             if self.buttons.get(bt):
                 self.buttons[bt].click()
-                #为渲染预留时间
+                # 为渲染预留时间
                 self.page.wait_for_timeout(100)
             else:
                 log.error("没有对应的输入框，请检查参数")
@@ -222,14 +221,12 @@ class LoginPage(object):
 
         return True
 
-    @logger
-    @ec
+    @base_decorator
     def a_goto(self, nth):
         """前往网页"""
         return self.a.nth(nth).click()
 
-    @logger
-    @ec
+    @base_decorator
     def input_clear(self, boxes: tuple | str):
         """清除输入框"""
 
